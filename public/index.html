@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>పుస్తక చందా నిర్వహణ వ్యవస్థ</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Noto+Sans+Telugu:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1a1008;--paper:#fdf6e3;--aged:#e8d5a3;--rust:#c0392b;--gold:#d4a017;--moss:#2d6a4f;--cream:#fef9f0;--blue:#2471a3;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans Telugu',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background-image:radial-gradient(ellipse at 20% 50%,rgba(212,160,23,.08) 0%,transparent 60%);}
+.login-wrap{display:grid;grid-template-columns:1fr 1fr;max-width:900px;width:100%;background:var(--cream);border:2px solid var(--aged);box-shadow:8px 8px 0 var(--aged);border-radius:4px;}
+.login-brand{background:var(--ink);padding:3rem;display:flex;flex-direction:column;justify-content:center;border-radius:2px 0 0 2px;position:relative;overflow:hidden;}
+.login-brand::before{content:'📖';font-size:120px;position:absolute;bottom:-20px;right:-20px;opacity:.08;}
+.brand-title{font-family:'Playfair Display',serif;font-size:1.9rem;color:var(--gold);line-height:1.2;margin-bottom:1rem;}
+.brand-sub{color:var(--aged);font-size:.88rem;line-height:1.8;}
+.brand-tag{margin-top:2rem;font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:.75rem;letter-spacing:2px;}
+.login-side{padding:3rem;display:flex;flex-direction:column;justify-content:center;}
+.login-side h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.5rem;}
+.tabs{display:flex;gap:.5rem;margin:1rem 0 1.8rem;}
+.tab{flex:1;padding:.6rem;border:2px solid var(--aged);background:transparent;cursor:pointer;font-family:'Noto Sans Telugu',sans-serif;font-size:.85rem;font-weight:600;transition:all .2s;border-radius:2px;color:var(--ink);}
+.tab.on{background:var(--ink);color:var(--gold);border-color:var(--ink);}
+.fg{margin-bottom:1.2rem;}
+.fg label{display:block;font-size:.78rem;font-weight:700;margin-bottom:.4rem;letter-spacing:.5px;text-transform:uppercase;}
+.fg input,.fg select,.fg textarea{width:100%;padding:.72rem 1rem;border:2px solid var(--aged);background:var(--paper);font-family:'Noto Sans Telugu',sans-serif;font-size:.93rem;color:var(--ink);outline:none;transition:border-color .2s;border-radius:2px;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--gold);}
+.btn-primary{width:100%;padding:.85rem;background:var(--ink);color:var(--gold);border:none;font-family:'Noto Sans Telugu',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;border-radius:2px;margin-top:.5rem;}
+.btn-primary:hover{background:var(--rust);color:#fff;}
+#inactiveScreen{display:none;min-height:100vh;align-items:center;justify-content:center;}
+.inactive-box{background:var(--cream);border:2px solid var(--rust);border-radius:4px;padding:3rem;text-align:center;max-width:420px;}
+.inactive-box h2{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--rust);margin-bottom:.75rem;}
+#loadingScreen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:1rem;}
+.spinner{width:40px;height:40px;border:4px solid var(--aged);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#app{display:none;}
+.topbar{background:var(--ink);padding:.85rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(26,16,8,.15);}
+.topbar-brand{font-family:'Playfair Display',serif;color:var(--gold);font-size:1.1rem;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:1rem;color:var(--aged);font-size:.85rem;}
+.btn-logout{padding:.4rem 1rem;background:transparent;border:1px solid var(--aged);color:var(--aged);cursor:pointer;font-size:.78rem;border-radius:2px;font-family:'Noto Sans Telugu',sans-serif;}
+.btn-logout:hover{border-color:var(--rust);color:var(--rust);}
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 50px);}
+.sidebar{background:#fff;border-right:2px solid var(--aged);padding:1.5rem 0;overflow-y:auto;}
+.ns-title{font-size:.68rem;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;padding:0 1.5rem;margin-bottom:.4rem;}
+.ni{display:flex;align-items:center;gap:.7rem;padding:.68rem 1.5rem;cursor:pointer;font-size:.88rem;color:var(--ink);transition:all .15s;border-left:3px solid transparent;font-weight:500;margin-bottom:.1rem;}
+.ni:hover{background:rgba(212,160,23,.08);color:var(--gold);}
+.ni.on{background:rgba(212,160,23,.13);border-left-color:var(--gold);font-weight:700;}
+.ns{margin-bottom:1.4rem;}
+.content{padding:2rem;overflow-y:auto;max-height:calc(100vh - 50px);}
+.ph{margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid var(--aged);}
+.ph h1{font-family:'Playfair Display',serif;font-size:1.8rem;}
+.ph p{color:#777;font-size:.88rem;margin-top:.3rem;}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1.2rem;margin-bottom:2rem;}
+.sc{background:#fff;border:2px solid var(--aged);padding:1.3rem;border-radius:4px;position:relative;overflow:hidden;transition:transform .2s;}
+.sc:hover{transform:translateY(-2px);}
+.sc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold);}
+.sl{font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#999;margin-bottom:.4rem;}
+.sv{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--ink);}
+.si_{position:absolute;top:1rem;right:1rem;font-size:1.4rem;opacity:.25;}
+.tc{background:#fff;border:2px solid var(--aged);border-radius:4px;overflow:hidden;margin-bottom:1.5rem;}
+.th_{padding:.9rem 1.5rem;background:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;}
+.th_ h3{color:var(--gold);font-family:'Playfair Display',serif;font-size:1rem;}
+table{width:100%;border-collapse:collapse;}
+th{padding:.7rem 1rem;text-align:left;font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;background:rgba(212,160,23,.08);color:#777;border-bottom:1px solid var(--aged);}
+td{padding:.8rem 1rem;font-size:.85rem;border-bottom:1px solid rgba(232,213,163,.4);color:var(--ink);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(212,160,23,.04);}
+.badge{display:inline-block;padding:.18rem .65rem;border-radius:20px;font-size:.7rem;font-weight:700;}
+.b-active{background:rgba(45,106,79,.12);color:var(--moss);}
+.b-inactive{background:rgba(192,57,43,.1);color:var(--rust);}
+.b-pending{background:rgba(212,160,23,.15);color:#9a7209;}
+.b-unsub{background:rgba(192,57,43,.1);color:var(--rust);}
+.b-renewed{background:rgba(36,113,163,.12);color:var(--blue);}
+.b-pc{background:rgba(45,106,79,.1);color:var(--moss);}
+.b-officer{background:rgba(125,60,152,.1);color:#7d3c98;}
+.fc{background:#fff;border:2px solid var(--aged);border-radius:4px;padding:1.8rem;margin-bottom:1.5rem;}
+.fc h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:1.4rem;padding-bottom:.7rem;border-bottom:1px solid var(--aged);}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.btn-s{padding:.38rem .85rem;background:var(--gold);color:var(--ink);border:none;cursor:pointer;font-size:.76rem;font-weight:700;border-radius:2px;font-family:'Noto Sans Telugu',sans-serif;transition:all .2s;white-space:nowrap;}
+.btn-s:hover{background:var(--ink);color:var(--gold);}
+.btn-s.r{background:var(--rust);color:#fff;}
+.btn-s.g{background:var(--moss);color:#fff;}
+.btn-s.b{background:var(--blue);color:#fff;}
+.btn-ok{padding:.75rem 2rem;background:var(--moss);color:#fff;border:none;font-family:'Noto Sans Telugu',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;border-radius:2px;}
+.btn-warn{padding:.75rem 2rem;background:var(--rust);color:#fff;border:none;font-family:'Noto Sans Telugu',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;border-radius:2px;}
+.alert{padding:.9rem 1.3rem;border-radius:2px;margin-bottom:1.2rem;font-size:.88rem;border-left:4px solid;display:none;}
+.al-ok{background:rgba(45,106,79,.08);border-color:var(--moss);color:var(--moss);}
+.al-err{background:rgba(192,57,43,.08);border-color:var(--rust);color:var(--rust);}
+.ib{background:rgba(212,160,23,.08);border:1px solid var(--aged);border-radius:4px;padding:1rem 1.4rem;margin-bottom:1.2rem;font-size:.88rem;line-height:1.9;}
+.search-bar{display:flex;gap:.8rem;margin-bottom:1.2rem;flex-wrap:wrap;align-items:center;}
+.search-bar input,.search-bar select{padding:.6rem 1rem;border:2px solid var(--aged);background:#fff;font-family:'Noto Sans Telugu',sans-serif;font-size:.88rem;border-radius:2px;outline:none;}
+.search-bar input{flex:1;min-width:180px;}
+.mo{position:fixed;inset:0;background:rgba(26,16,8,.65);display:none;align-items:center;justify-content:center;z-index:1000;}
+.md{background:var(--cream);border:2px solid var(--aged);border-radius:4px;padding:2rem;max-width:520px;width:92%;box-shadow:8px 8px 0 var(--aged);max-height:90vh;overflow-y:auto;}
+.md h3{font-family:'Playfair Display',serif;font-size:1.25rem;margin-bottom:1.4rem;padding-bottom:.7rem;border-bottom:1px solid var(--aged);}
+.md-act{display:flex;gap:1rem;margin-top:1.5rem;justify-content:flex-end;}
+.btn-cancel{padding:.6rem 1.4rem;background:transparent;border:2px solid var(--aged);cursor:pointer;font-family:'Noto Sans Telugu',sans-serif;border-radius:2px;color:var(--ink);}
+.amt-box{background:var(--ink);color:#fff;border-radius:4px;padding:1.2rem 1.5rem;margin:1rem 0;display:flex;justify-content:space-between;align-items:center;}
+.amt-box .lbl{font-size:.78rem;color:var(--aged);}
+.amt-box .val{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);font-weight:900;}
+.reason-chips{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;}
+.chip{padding:.45rem 1rem;border:2px solid var(--aged);border-radius:20px;cursor:pointer;font-size:.82rem;font-weight:600;background:#fff;}
+.chip.on{border-color:var(--rust);background:rgba(192,57,43,.08);color:var(--rust);}
+.pag{display:flex;gap:.4rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;}
+.pag button{padding:.35rem .75rem;border:2px solid var(--aged);background:#fff;cursor:pointer;border-radius:2px;font-size:.8rem;font-family:'Noto Sans Telugu',sans-serif;}
+.pag button.on{background:var(--ink);color:var(--gold);border-color:var(--ink);}
+@media(max-width:768px){.login-wrap{grid-template-columns:1fr;}.login-brand{display:none;}.layout{grid-template-columns:1fr;}.sidebar{display:none;}.fr{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="brand-title">పుస్తక చందా నిర్వహణ వ్యవస్థ</div>
+      <div class="brand-sub">జిల్లా యూనిట్లు • సభ్యులు • వార్షిక పంపిణీ<br>PC/HC: ₹300 | ASI & above: ₹380</div>
+      <div class="brand-tag">POLICE BOOK SUBSCRIPTION SYSTEM</div>
+    </div>
+    <div class="login-side">
+      <h2>లాగిన్ చేయండి</h2>
+      <div class="tabs">
+        <button class="tab on" onclick="switchTab('admin')">🔐 Admin</button>
+        <button class="tab" onclick="switchTab('unit')">🏢 Unit</button>
+      </div>
+      <div id="loginAlert" class="alert al-err"></div>
+      <div class="fg"><label>User ID</label><input id="loginId" placeholder="ID నమోదు చేయండి" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="fg"><label>Password</label><input type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn-primary" onclick="doLogin()">లాగిన్ →</button>
+    </div>
+  </div>
+</div>
+
+<div id="inactiveScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;">
+  <div class="inactive-box">
+    <div style="font-size:4rem;margin-bottom:1rem">🔒</div>
+    <h2>Account Inactive</h2>
+    <p style="color:#666;line-height:1.7">మీ account నిష్క్రియంగా ఉంది.<br>దయచేసి Administrator ని సంప్రదించండి.</p>
+    <button class="btn-primary" style="margin-top:1.5rem" onclick="doLogout()">← వెనక్కి</button>
+  </div>
+</div>
+
+<div id="loadingScreen" style="display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:1rem;">
+  <div class="spinner"></div>
+  <div style="color:#888;font-size:.9rem">Loading...</div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-brand">📖 పుస్తక చందా వ్యవస్థ</div>
+    <div class="topbar-right"><span id="topUser"></span><button class="btn-logout" onclick="doLogout()">లాగ్ అవుట్</button></div>
+  </div>
+  <div class="layout">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="content" id="content"><div style="text-align:center;padding:3rem;color:#aaa">Loading...</div></div>
+  </div>
+</div>
+
+<div class="mo" id="mo"><div class="md" id="md"></div></div>
+
+<script>
+const RANKS=['PC','HC','ASI','SI','Inspector','DSP and above'];
+const PC_RANKS=['PC','HC'];
+const PRICE=r=>PC_RANKS.includes(r)?300:380;
+const CUR_YEAR=new Date().getFullYear();
+
+// ── State ──
+let STATE={role:null,userId:null,unitId:null,userName:'',curPage:'',mPage:1,mSearch:'',mRank:'all',mStatus:'all'};
+
+// ── API ──
+async function api(method,url,body){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const res=await fetch(url,opts);
+  return res.json();
+}
+const GET=url=>api('GET',url);
+const POST=(url,b)=>api('POST',url,b);
+const PUT=(url,b)=>api('PUT',url,b);
+const PATCH=(url,b)=>api('PATCH',url,b);
+
+// ── Init ──
+window.onload=async()=>{
+  showScreen('loading');
+  const me=await GET('/api/me');
+  if(me.loggedIn){
+    STATE.role=me.role;STATE.userId=me.userId;STATE.userName=me.name;
+    if(me.role==='unit') STATE.unitId=me.userId;
+    showApp();
+  } else {
+    showScreen('login');
+  }
+};
+
+function showScreen(s){
+  ['loginScreen','inactiveScreen','loadingScreen','app'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.display=id===s+'Screen'||id===s?'flex':'none';
+  });
+  if(s==='app') document.getElementById('app').style.display='block';
+}
+
+let loginTab='admin';
+function switchTab(t){
+  loginTab=t;
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',(t==='admin'&&i===0)||(t==='unit'&&i===1)));
+  document.getElementById('loginAlert').style.display='none';
+}
+
+async function doLogin(){
+  const id=document.getElementById('loginId').value.trim();
+  const pw=document.getElementById('loginPass').value.trim();
+  const al=document.getElementById('loginAlert');
+  al.style.display='none';
+  if(!id||!pw){al.className='alert al-err';al.style.display='block';al.textContent='ID & Password నమోదు చేయండి';return;}
+
+  showScreen('loading');
+  const res=await POST('/api/login',{id,pass:pw,type:loginTab});
+
+  if(res.success){
+    STATE.role=res.role;STATE.userId=id;STATE.userName=res.name;
+    if(res.role==='unit') STATE.unitId=id;
+    showApp();
+  } else if(res.inactive){
+    showScreen('inactive');
+  } else {
+    showScreen('login');
+    al.className='alert al-err';al.style.display='block';al.textContent='తప్పు ID లేదా Password!';
+  }
+}
+
+async function doLogout(){
+  await POST('/api/logout');
+  STATE={role:null,userId:null,unitId:null,userName:'',curPage:'',mPage:1,mSearch:'',mRank:'all',mStatus:'all'};
+  showScreen('login');
+  document.getElementById('loginId').value='';
+  document.getElementById('loginPass').value='';
+  loginTab='admin';switchTab('admin');
+}
+
+function showApp(){
+  showScreen('app');
+  document.getElementById('topUser').textContent=STATE.userName;
+  buildSidebar();
+  go(STATE.role==='admin'?'aDash':'uDash');
+}
+
+// ── Sidebar ──
+function buildSidebar(){
+  const s=document.getElementById('sidebar');
+  if(STATE.role==='admin'){
+    s.innerHTML=`<div class="ns"><div class="ns-title">Overview</div>
+      <div class="ni on" id="ni-aDash" onclick="go('aDash')"><span>📊</span>డాష్‌బోర్డ్</div></div>
+    <div class="ns"><div class="ns-title">యూనిట్లు</div>
+      <div class="ni" id="ni-aUnits" onclick="go('aUnits')"><span>🏢</span>యూనిట్ నిర్వహణ</div>
+      <div class="ni" id="ni-aAddUnit" onclick="go('aAddUnit')"><span>➕</span>యూనిట్ జోడించు</div></div>
+    <div class="ns"><div class="ns-title">Members</div>
+      <div class="ni" id="ni-aMembers" onclick="go('aMembers')"><span>👥</span>అన్ని Members</div></div>
+    <div class="ns"><div class="ns-title">నిర్వహణ</div>
+      <div class="ni" id="ni-aDelivery" onclick="go('aDelivery')"><span>📮</span>డెలివరీ</div>
+      <div class="ni" id="ni-aReports" onclick="go('aReports')"><span>📈</span>రిపోర్టులు</div></div>`;
+  } else {
+    s.innerHTML=`<div class="ns"><div class="ns-title">నా వ్యవస్థ</div>
+      <div class="ni on" id="ni-uDash" onclick="go('uDash')"><span>🏠</span>డాష్‌బోర్డ్</div>
+      <div class="ni" id="ni-uMembers" onclick="go('uMembers')"><span>👥</span>Members</div>
+      <div class="ni" id="ni-uAddMember" onclick="go('uAddMember')"><span>➕</span>Member జోడించు</div>
+      <div class="ni" id="ni-uDelivery" onclick="go('uDelivery')"><span>📦</span>డెలివరీ స్థితి</div></div>`;
+  }
+}
+
+async function go(page){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  const el=document.getElementById('ni-'+page);if(el)el.classList.add('on');
+  STATE.mPage=1;STATE.mSearch='';STATE.mRank='all';STATE.mStatus='all';STATE.curPage=page;
+  document.getElementById('content').innerHTML='<div style="text-align:center;padding:3rem"><div class="spinner" style="margin:auto"></div></div>';
+  const pages={aDash,aUnits,aAddUnit,aMembers,aDelivery,aReports,uDash,uMembers,uAddMember,uDelivery};
+  if(pages[page]) await pages[page]();
+}
+async function refresh(){
+  const pages={aDash,aUnits,aAddUnit,aMembers,aDelivery,aReports,uDash,uMembers,uAddMember,uDelivery};
+  if(STATE.curPage&&pages[STATE.curPage]) await pages[STATE.curPage]();
+}
+
+// ── Helpers ──
+function rankBadge(r){return `<span class="badge ${PC_RANKS.includes(r)?'b-pc':'b-officer'}">${r}</span>`;}
+function statusBadge(m){
+  if(m.status==='unsubscribed')return `<span class="badge b-unsub">❌ ${m.unsub_reason||'Unsub'}</span>`;
+  if(m.renewed_year===CUR_YEAR)return `<span class="badge b-renewed">✓ ${CUR_YEAR}</span>`;
+  return `<span class="badge b-pending">⏳ Renewal బాకీ</span>`;
+}
+function set(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+function showMo(html){document.getElementById('md').innerHTML=html;document.getElementById('mo').style.display='flex';}
+function closeMo(){document.getElementById('mo').style.display='none';}
+document.getElementById('mo').addEventListener('click',e=>{if(e.target===document.getElementById('mo'))closeMo();});
+
+function memberTableHtml(members,showUnit){
+  if(!members.length)return`<tr><td colspan="${showUnit?10:9}" style="text-align:center;color:#aaa;padding:2rem">Members కనుగొనబడలేదు</td></tr>`;
+  return members.map(m=>`<tr>
+    <td><span style="font-family:JetBrains Mono,monospace;font-size:.72rem">${m.id}</span></td>
+    <td><strong>${m.name}</strong><br><span style="font-size:.75rem;color:#999">${m.phone}</span></td>
+    ${showUnit?`<td style="font-size:.8rem">${m.unit_name||''}</td>`:''}
+    <td>${rankBadge(m.rank)}</td>
+    <td style="text-align:center">${m.books}</td>
+    <td><strong style="color:var(--moss)">₹${(m.amount||0).toLocaleString()}</strong></td>
+    <td>${m.sub_year}</td>
+    <td>${statusBadge(m)}</td>
+    <td><div style="display:flex;gap:.3rem;flex-wrap:wrap">
+      <button class="btn-s" onclick="openEdit('${m.id}','${m.unit_id}')">✏️</button>
+      ${m.status==='active'
+        ?`<button class="btn-s b" onclick="openRenew('${m.id}','${m.unit_id}')">🔄</button>
+          <button class="btn-s r" onclick="openUnsub('${m.id}','${m.unit_id}')">❌</button>`
+        :`<button class="btn-s g" onclick="doReactivate('${m.id}')">↩️</button>`}
+    </div></td>
+  </tr>`).join('');
+}
+
+function memberSectionHtml(members,showUnit,pfx,stats=''){
+  const start=(STATE.mPage-1)*20;
+  const paged=members.slice(start,start+20);
+  const pages=Math.ceil(members.length/20)||1;
+  let pagHtml='';
+  if(pages>1){pagHtml='<div class="pag">';for(let i=1;i<=pages;i++)pagHtml+=`<button class="${i===STATE.mPage?'on':''}" onclick="${pfx}_page(${i})">${i}</button>`;pagHtml+='</div>';}
+  return `${stats}
+  <div class="search-bar">
+    <input placeholder="🔍 పేరు / ఫోన్ / ID" value="${STATE.mSearch}" oninput="${pfx}_search(this.value)">
+    <select onchange="${pfx}_rank(this.value)">
+      <option value="all">అన్ని Ranks</option>
+      <option value="pc" ${STATE.mRank==='pc'?'selected':''}>PC & HC (₹300)</option>
+      <option value="officer" ${STATE.mRank==='officer'?'selected':''}>Officers (₹380)</option>
+      ${RANKS.map(r=>`<option value="${r}" ${STATE.mRank===r?'selected':''}>${r}</option>`).join('')}
+    </select>
+    <select onchange="${pfx}_status(this.value)">
+      <option value="all">అన్ని స్థితులు</option>
+      <option value="active" ${STATE.mStatus==='active'?'selected':''}>Active</option>
+      <option value="renewed" ${STATE.mStatus==='renewed'?'selected':''}>${CUR_YEAR} Renewed</option>
+      <option value="pending" ${STATE.mStatus==='pending'?'selected':''}>Renewal బాకీ</option>
+      <option value="unsub" ${STATE.mStatus==='unsub'?'selected':''}>Unsubscribed</option>
+    </select>
+    <span style="font-size:.82rem;color:#888">${members.length} మంది</span>
+  </div>
+  <div class="tc">
+    <div class="th_"><h3>Members జాబితా</h3>
+      ${STATE.role==='unit'?`<button class="btn-s g" onclick="go('uAddMember')">+ Member జోడించు</button>`:''}
+    </div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>ID</th><th>పేరు & ఫోన్</th>${showUnit?'<th>యూనిట్</th>':''}
+        <th>Rank</th><th>పుస్తకాలు</th><th>Amount</th><th>చందా సం.</th><th>స్థితి</th><th>చర్యలు</th></tr></thead>
+      <tbody>${memberTableHtml(paged,showUnit)}</tbody>
+    </table></div>
+  </div>${pagHtml}`;
+}
+
+// ═══════ ADMIN PAGES ═══════
+async function aDash(){
+  STATE.curPage='aDash';
+  const [units,rep]=await Promise.all([GET('/api/units'),GET('/api/reports')]);
+  const s=rep.summary||{};
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>Admin డాష్‌బోర్డ్</h1><p>సమగ్ర అవలోకనం • ${CUR_YEAR}</p></div>
+  <div class="sgrid">
+    <div class="sc"><div class="sl">మొత్తం యూనిట్లు</div><div class="sv">${units.length}</div><div class="si_">🏢</div></div>
+    <div class="sc"><div class="sl">Active యూనిట్లు</div><div class="sv">${units.filter(u=>u.status==='active').length}</div><div class="si_">✅</div></div>
+    <div class="sc"><div class="sl">మొత్తం Members</div><div class="sv">${s.total||0}</div><div class="si_">👥</div></div>
+    <div class="sc"><div class="sl">Active Members</div><div class="sv">${s.active||0}</div><div class="si_">✅</div></div>
+    <div class="sc"><div class="sl">${CUR_YEAR} Renewed</div><div class="sv">${s.renewed||0}</div><div class="si_">🔄</div></div>
+    <div class="sc"><div class="sl">Unsubscribed</div><div class="sv">${s.unsub||0}</div><div class="si_">❌</div></div>
+    <div class="sc" style="grid-column:span 2"><div class="sl">మొత్తం Amount</div><div class="sv">₹${(s.total_amount||0).toLocaleString()}</div><div class="si_">💰</div></div>
+  </div>
+  <div class="tc"><div class="th_"><h3>యూనిట్ వారీ సారాంశం</h3><button class="btn-s g" onclick="go('aAddUnit')">+ యూనిట్</button></div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>ID</th><th>యూనిట్</th><th>జిల్లా</th><th>Active Members</th><th>Amount</th><th>Account</th><th>చర్య</th></tr></thead>
+    <tbody>${(rep.byUnit||[]).map(u=>`<tr>
+      <td><span style="font-family:JetBrains Mono,monospace;font-size:.75rem">${u.id}</span></td>
+      <td><strong>${u.name}</strong></td><td>${u.district}</td>
+      <td>${u.active||0} / ${u.total||0}</td>
+      <td><strong style="color:var(--moss)">₹${(u.amount||0).toLocaleString()}</strong></td>
+      <td><span class="badge b-${units.find(x=>x.id===u.id)?.status||'active'}">${units.find(x=>x.id===u.id)?.status==='active'?'✅ Active':'🔒 Inactive'}</span></td>
+      <td><button class="btn-s ${units.find(x=>x.id===u.id)?.status==='active'?'r':'g'}" onclick="toggleUnit('${u.id}')">${units.find(x=>x.id===u.id)?.status==='active'?'🔒 Inactive':'✅ Active'}</button></td>
+    </tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+
+async function aUnits(){
+  STATE.curPage='aUnits';
+  const units=await GET('/api/units');
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>యూనిట్ నిర్వహణ</h1><p>Active / Inactive చేయండి</p></div>
+  <div class="tc"><div class="th_"><h3>యూనిట్లు (${units.length})</h3><button class="btn-s g" onclick="go('aAddUnit')">+ కొత్త యూనిట్</button></div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>ID</th><th>పేరు</th><th>జిల్లా</th><th>Password</th><th>Members</th><th>స్థితి</th><th>చర్యలు</th></tr></thead>
+    <tbody>${units.map(u=>`<tr>
+      <td><span style="font-family:JetBrains Mono,monospace">${u.id}</span></td>
+      <td><strong>${u.name}</strong></td><td>${u.district}</td>
+      <td><span style="font-family:JetBrains Mono,monospace;color:#999">${u.pass}</span></td>
+      <td>${u.activeMembers||0} / ${u.totalMembers||0}</td>
+      <td><span class="badge b-${u.status}">${u.status==='active'?'✅ Active':'🔒 Inactive'}</span></td>
+      <td><div style="display:flex;gap:.4rem">
+        <button class="btn-s ${u.status==='active'?'r':'g'}" onclick="toggleUnit('${u.id}')">${u.status==='active'?'🔒 Inactive':'✅ Active'}</button>
+        <button class="btn-s" onclick="editUnitMo('${u.id}','${u.name}','${u.district}','${u.pass}')">✏️</button>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+
+async function toggleUnit(id){
+  await PATCH(`/api/units/${id}/toggle`);
+  refresh();
+}
+
+function editUnitMo(id,name,dist,pass){
+  showMo(`<h3>✏️ ${name} — Edit</h3>
+    <div class="fg"><label>పేరు</label><input id="eun" value="${name}"></div>
+    <div class="fr">
+      <div class="fg"><label>జిల్లా</label><input id="eud" value="${dist}"></div>
+      <div class="fg"><label>Password</label><input id="eup" value="${pass}"></div>
+    </div>
+    <div class="md-act"><button class="btn-cancel" onclick="closeMo()">రద్దు</button>
+      <button class="btn-ok" onclick="saveUnitEdit('${id}')">✓ సేవ్</button></div>`);
+}
+async function saveUnitEdit(id){
+  await PUT(`/api/units/${id}`,{name:document.getElementById('eun').value,district:document.getElementById('eud').value,pass:document.getElementById('eup').value});
+  closeMo();refresh();
+}
+
+function aAddUnit(){
+  STATE.curPage='aAddUnit';
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>కొత్త యూనిట్ జోడించు</h1></div>
+  <div class="fc" style="max-width:580px"><h3>యూనిట్ వివరాలు</h3>
+    <div id="aual" class="alert"></div>
+    <div class="fr">
+      <div class="fg"><label>యూనిట్ ID *</label><input id="auid" placeholder="UNIT005"></div>
+      <div class="fg"><label>Password *</label><input id="aupass" placeholder="unit000"></div>
+    </div>
+    <div class="fg"><label>యూనిట్ పేరు *</label><input id="auname" placeholder="నల్లగొండ యూనిట్"></div>
+    <div class="fg"><label>జిల్లా *</label><input id="audist" placeholder="నల్లగొండ"></div>
+    <button class="btn-ok" onclick="addUnit()">✓ యూనిట్ సేవ్ చేయి</button>
+  </div>`;
+}
+async function addUnit(){
+  const id=document.getElementById('auid').value.trim();
+  const pass=document.getElementById('aupass').value.trim();
+  const name=document.getElementById('auname').value.trim();
+  const district=document.getElementById('audist').value.trim();
+  const al=document.getElementById('aual');
+  if(!id||!pass||!name||!district){al.className='alert al-err';al.style.display='block';al.textContent='అన్ని fields అవసరం!';return;}
+  const res=await POST('/api/units',{id,pass,name,district});
+  if(res.error){al.className='alert al-err';al.style.display='block';al.textContent=res.error;return;}
+  al.className='alert al-ok';al.style.display='block';
+  al.innerHTML=`✓ విజయవంతంగా జోడించబడింది!<br><strong>Login: ${id} / ${pass}</strong>`;
+  ['auid','aupass','auname','audist'].forEach(i=>document.getElementById(i).value='');
+}
+
+async function aMembers(){
+  STATE.curPage='aMembers';
+  const params=new URLSearchParams({search:STATE.mSearch,rank:STATE.mRank,status:STATE.mStatus});
+  const members=await GET(`/api/members?${params}`);
+  const active=members.filter(m=>m.status==='active');
+  const totalAm=active.reduce((s,m)=>s+(m.amount||0),0);
+  const stats=`<div class="sgrid" style="margin-bottom:1.2rem">
+    <div class="sc"><div class="sl">మొత్తం</div><div class="sv">${members.length}</div></div>
+    <div class="sc"><div class="sl">Active</div><div class="sv">${active.length}</div></div>
+    <div class="sc"><div class="sl">${CUR_YEAR} Renewed</div><div class="sv">${active.filter(m=>m.renewed_year===CUR_YEAR).length}</div></div>
+    <div class="sc"><div class="sl">Unsubscribed</div><div class="sv">${members.filter(m=>m.status==='unsubscribed').length}</div></div>
+    <div class="sc" style="grid-column:span 2"><div class="sl">మొత్తం Amount</div><div class="sv">₹${totalAm.toLocaleString()}</div></div>
+  </div>`;
+  document.getElementById('content').innerHTML=`<div class="ph"><h1>అన్ని Members</h1><p>${members.length} మంది సభ్యులు</p></div>${memberSectionHtml(members,true,'aM',stats)}`;
+}
+async function aM_search(v){STATE.mSearch=v;STATE.mPage=1;await aMembers();}
+async function aM_rank(v){STATE.mRank=v;STATE.mPage=1;await aMembers();}
+async function aM_status(v){STATE.mStatus=v;STATE.mPage=1;await aMembers();}
+function aM_page(p){STATE.mPage=p;aMembers();}
+
+async function aDelivery(){
+  STATE.curPage='aDelivery';
+  const units=await GET('/api/units');
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>డెలివరీ నిర్వహణ</h1></div>
+  <div class="fc" style="max-width:100%"><h3>స్థితి అప్‌డేట్</h3>
+    <div id="dal" class="alert"></div>
+    <div class="fr">
+      <div class="fg"><label>యూనిట్</label><select id="dunit">
+        <option value="">-- ఎంచుకోండి --</option>
+        ${units.map(u=>`<option value="${u.id}">${u.id} — ${u.name}</option>`).join('')}
+      </select></div>
+      <div class="fg"><label>స్థితి</label><select id="dstat">
+        <option value="pending">⏳ నిలుపు</option>
+        <option value="processing">🔄 ప్రాసెస్</option>
+        <option value="sent">📮 పంపించారు</option>
+        <option value="delivered">✅ అందింది</option>
+      </select></div>
+    </div>
+    <button class="btn-ok" onclick="updDelivery()">✓ అప్‌డేట్</button>
+  </div>
+  <div class="tc"><div class="th_"><h3>డెలివరీ స్థితి</h3></div>
+  <table><thead><tr><th>యూనిట్</th><th>జిల్లా</th><th>స్థితి</th></tr></thead>
+  <tbody>${units.map(u=>`<tr>
+    <td><strong>${u.name}</strong></td><td>${u.district}</td>
+    <td><span class="badge b-${u.delivery_status==='delivered'?'active':u.delivery_status==='sent'?'renewed':'pending'}">${
+      u.delivery_status==='delivered'?'✅ అందింది':u.delivery_status==='sent'?'📮 పంపించారు':u.delivery_status==='processing'?'🔄 ప్రాసెస్':'⏳ నిలుపు'
+    }</span></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+async function updDelivery(){
+  const uid=document.getElementById('dunit').value;
+  const st=document.getElementById('dstat').value;
+  const al=document.getElementById('dal');
+  if(!uid){al.className='alert al-err';al.style.display='block';al.textContent='యూనిట్ ఎంచుకోండి!';return;}
+  await PUT(`/api/units/${uid}`,{delivery_status:st});
+  al.className='alert al-ok';al.style.display='block';al.textContent='✓ స్థితి అప్‌డేట్ అయింది!';
+  setTimeout(()=>aDelivery(),1000);
+}
+
+async function aReports(){
+  STATE.curPage='aReports';
+  const rep=await GET('/api/reports');
+  const PC_R=['PC','HC'];
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>రిపోర్టులు</h1><p>${CUR_YEAR} చందా రిపోర్ట్</p></div>
+  <div class="tc"><div class="th_"><h3>Rank వారీ Amount రిపోర్ట్</h3></div>
+  <table><thead><tr><th>Rank</th><th>రకం</th><th>Members</th><th>పుస్తకాలు</th><th>ధర</th><th>Amount</th></tr></thead>
+  <tbody>${(rep.byRank||[]).map(r=>`<tr>
+    <td>${rankBadge(r.rank)}</td>
+    <td>${PC_R.includes(r.rank)?'PC/HC':'Officer'}</td>
+    <td>${r.count}</td><td>${r.total_books}</td>
+    <td>₹${PC_R.includes(r.rank)?300:380}</td>
+    <td><strong style="color:var(--moss)">₹${(r.total_amount||0).toLocaleString()}</strong></td>
+  </tr>`).join('')}
+  </tbody></table></div>
+  ${rep.byReason?.length?`<div class="tc"><div class="th_"><h3>Unsubscribe కారణాలు</h3></div>
+  <table><thead><tr><th>కారణం</th><th>Members</th></tr></thead>
+  <tbody>${rep.byReason.map(r=>`<tr><td>${r.reason}</td><td><strong>${r.count}</strong></td></tr>`).join('')}</tbody>
+  </table></div>`:''}
+  <div class="tc"><div class="th_"><h3>యూనిట్ వారీ రిపోర్ట్</h3></div>
+  <table><thead><tr><th>యూనిట్</th><th>జిల్లా</th><th>Active</th><th>Renewed</th><th>Unsub</th><th>Amount</th></tr></thead>
+  <tbody>${(rep.byUnit||[]).map(u=>`<tr>
+    <td><strong>${u.name}</strong></td><td>${u.district}</td>
+    <td>${u.active||0}</td><td>${u.renewed||0}</td><td>${u.unsub||0}</td>
+    <td><strong style="color:var(--moss)">₹${(u.amount||0).toLocaleString()}</strong></td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ═══════ UNIT PAGES ═══════
+async function uDash(){
+  STATE.curPage='uDash';
+  const uid=STATE.unitId;
+  const [unit,members]=await Promise.all([GET(`/api/units/${uid}`),GET(`/api/units/${uid}/members`)]);
+  const act=members.filter(m=>m.status==='active');
+  const ren=act.filter(m=>m.renewed_year===CUR_YEAR);
+  const pending=act.filter(m=>m.renewed_year!==CUR_YEAR);
+  const totalAm=act.reduce((s,m)=>s+(m.amount||0),0);
+  const pcAm=act.filter(m=>PC_RANKS.includes(m.rank)).reduce((s,m)=>s+(m.amount||0),0);
+  const offAm=act.filter(m=>!PC_RANKS.includes(m.rank)).reduce((s,m)=>s+(m.amount||0),0);
+
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>నమస్కారం!</h1><p>${unit.name} • ${unit.district} • ${CUR_YEAR}</p></div>
+  <div class="sgrid">
+    <div class="sc"><div class="sl">మొత్తం Members</div><div class="sv">${members.length}</div><div class="si_">👥</div></div>
+    <div class="sc"><div class="sl">Active</div><div class="sv">${act.length}</div><div class="si_">✅</div></div>
+    <div class="sc"><div class="sl">${CUR_YEAR} Renewed</div><div class="sv">${ren.length}</div><div class="si_">🔄</div></div>
+    <div class="sc"><div class="sl">Renewal బాకీ</div><div class="sv">${pending.length}</div><div class="si_">⏳</div></div>
+    <div class="sc"><div class="sl">PC/HC (₹300)</div><div class="sv" style="font-size:1.2rem">₹${pcAm.toLocaleString()}</div></div>
+    <div class="sc"><div class="sl">Officers (₹380)</div><div class="sv" style="font-size:1.2rem">₹${offAm.toLocaleString()}</div></div>
+    <div class="sc" style="grid-column:span 2"><div class="sl">మొత్తం Amount</div><div class="sv">₹${totalAm.toLocaleString()}</div><div class="si_">💰</div></div>
+  </div>
+  ${pending.length?`<div class="tc"><div class="th_"><h3>⏳ Renewal బాకీ (${pending.length})</h3></div>
+  <div style="overflow-x:auto"><table><thead><tr><th>పేరు</th><th>Rank</th><th>పుస్తకాలు</th><th>Amount</th><th>చివరి చందా</th><th>చర్య</th></tr></thead>
+  <tbody>${pending.slice(0,8).map(m=>`<tr>
+    <td><strong>${m.name}</strong></td><td>${rankBadge(m.rank)}</td>
+    <td>${m.books}</td><td>₹${(m.amount||0).toLocaleString()}</td><td>${m.sub_year}</td>
+    <td><button class="btn-s b" onclick="openRenew('${m.id}','${uid}')">🔄 Renew</button></td>
+  </tr>`).join('')}
+  ${pending.length>8?`<tr><td colspan="6" style="text-align:center;color:#999;font-size:.82rem">... మరియు ${pending.length-8} మంది బాకీ</td></tr>`:''}
+  </tbody></table></div></div>`
+  :`<div style="text-align:center;padding:2rem;color:var(--moss);background:#fff;border:2px solid var(--aged);border-radius:4px"><div style="font-size:2rem;margin-bottom:.5rem">🎉</div><strong>అందరూ ${CUR_YEAR} కి Renew చేసారు!</strong></div>`}`;
+}
+
+async function uMembers(){
+  STATE.curPage='uMembers';
+  const uid=STATE.unitId;
+  const params=new URLSearchParams({search:STATE.mSearch,rank:STATE.mRank,status:STATE.mStatus});
+  const members=await GET(`/api/units/${uid}/members?${params}`);
+  const act=members.filter(m=>m.status==='active');
+  const totalAm=act.reduce((s,m)=>s+(m.amount||0),0);
+  const stats=`<div class="sgrid" style="margin-bottom:1.2rem">
+    <div class="sc"><div class="sl">మొత్తం</div><div class="sv">${members.length}</div></div>
+    <div class="sc"><div class="sl">Active</div><div class="sv">${act.length}</div></div>
+    <div class="sc"><div class="sl">${CUR_YEAR} Renewed</div><div class="sv">${act.filter(m=>m.renewed_year===CUR_YEAR).length}</div></div>
+    <div class="sc"><div class="sl">Unsub</div><div class="sv">${members.filter(m=>m.status==='unsubscribed').length}</div></div>
+    <div class="sc"><div class="sl">Amount</div><div class="sv" style="font-size:1.2rem">₹${totalAm.toLocaleString()}</div></div>
+  </div>`;
+  document.getElementById('content').innerHTML=`<div class="ph"><h1>Members నిర్వహణ</h1><p>${members.length} మంది సభ్యులు</p></div>${memberSectionHtml(members,false,'uM',stats)}`;
+}
+async function uM_search(v){STATE.mSearch=v;STATE.mPage=1;await uMembers();}
+async function uM_rank(v){STATE.mRank=v;STATE.mPage=1;await uMembers();}
+async function uM_status(v){STATE.mStatus=v;STATE.mPage=1;await uMembers();}
+function uM_page(p){STATE.mPage=p;uMembers();}
+
+function uAddMember(){
+  STATE.curPage='uAddMember';
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>కొత్త Member జోడించు</h1></div>
+  <div class="fc" style="max-width:600px"><h3>Member వివరాలు</h3>
+    <div id="amal" class="alert"></div>
+    <div class="fg"><label>పేరు *</label><input id="amn" placeholder="పూర్తి పేరు"></div>
+    <div class="fr">
+      <div class="fg"><label>ఫోన్ *</label><input id="amp" placeholder="9XXXXXXXXX"></div>
+      <div class="fg"><label>Rank *</label><select id="amr" onchange="calcAM()">
+        ${RANKS.map(r=>`<option>${r}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="fg"><label>చిరునామా</label><textarea id="ama" rows="2" placeholder="పూర్తి చిరునామా"></textarea></div>
+    <div class="fr">
+      <div class="fg"><label>పుస్తకాల సంఖ్య *</label><input type="number" id="amb" value="1" min="1" oninput="calcAM()"></div>
+      <div class="fg"><label>చందా సంవత్సరం</label><input type="number" id="amy" value="${CUR_YEAR}"></div>
+    </div>
+    <div class="amt-box">
+      <div><div class="lbl">Amount (auto)</div><div class="val" id="amamt">₹300</div></div>
+      <div style="font-size:.78rem;color:var(--aged)">PC/HC:₹300 | ASI & above:₹380<br>× పుస్తకాల సంఖ్య</div>
+    </div>
+    <button class="btn-ok" onclick="addMember()">✓ Member జోడించు</button>
+  </div>`;
+}
+function calcAM(){
+  const r=document.getElementById('amr')?.value||'PC';
+  const b=parseInt(document.getElementById('amb')?.value)||1;
+  const el=document.getElementById('amamt');
+  if(el)el.textContent='₹'+(b*PRICE(r)).toLocaleString();
+}
+async function addMember(){
+  const uid=STATE.unitId;
+  const name=document.getElementById('amn').value.trim();
+  const phone=document.getElementById('amp').value.trim();
+  const rank=document.getElementById('amr').value;
+  const address=document.getElementById('ama').value.trim();
+  const books=parseInt(document.getElementById('amb').value)||1;
+  const sub_year=parseInt(document.getElementById('amy').value)||CUR_YEAR;
+  const al=document.getElementById('amal');
+  if(!name||!phone){al.className='alert al-err';al.style.display='block';al.textContent='పేరు & ఫోన్ అవసరం!';return;}
+  const res=await POST(`/api/units/${uid}/members`,{name,phone,rank,address,books,sub_year});
+  if(res.error){al.className='alert al-err';al.style.display='block';al.textContent=res.error;return;}
+  al.className='alert al-ok';al.style.display='block';
+  al.textContent=`✓ ${name} జోడించబడ్డారు! Amount: ₹${res.amount?.toLocaleString()}`;
+  ['amn','amp','ama'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('amb').value='1';calcAM();
+}
+
+async function uDelivery(){
+  STATE.curPage='uDelivery';
+  const unit=await GET(`/api/units/${STATE.unitId}`);
+  const stages=['pending','processing','sent','delivered'];
+  const names=['ఆర్డర్ నమోదు','ప్రింటింగ్ & ప్యాకింగ్','పోస్టు చేయబడింది','డెలివరీ పూర్తి'];
+  const icons=['📋','🖨️','📮','✅'];
+  const cur=stages.indexOf(unit.delivery_status);
+  document.getElementById('content').innerHTML=`
+  <div class="ph"><h1>డెలివరీ స్థితి</h1></div>
+  <div class="fc" style="max-width:700px"><h3>${CUR_YEAR} పుస్తక పంపిణీ</h3>
+    <div style="display:flex;margin:1.5rem 0">
+      ${names.map((n,i)=>`<div style="flex:1;text-align:center;position:relative">
+        ${i<names.length-1?`<div style="position:absolute;top:18px;left:50%;right:-50%;height:2px;background:${i<cur?'var(--moss)':'var(--aged)'}"></div>`:''}
+        <div style="width:36px;height:36px;border-radius:50%;border:2px solid ${i<cur?'var(--moss)':i===cur?'var(--gold)':'var(--aged)'};background:${i<cur?'var(--moss)':i===cur?'var(--gold)':'#fff'};display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;position:relative;z-index:1;font-size:1rem">${icons[i]}</div>
+        <div style="font-size:.72rem;font-weight:600;color:${i<cur?'var(--moss)':i===cur?'var(--gold)':'#aaa'}">${n}</div>
+      </div>`).join('')}
+    </div>
+    <div class="ib"><strong>ప్రస్తుత స్థితి: ${names[Math.max(0,cur)]}</strong></div>
+  </div>`;
+}
+
+// ── EDIT / RENEW / UNSUB modals ──
+async function openEdit(mid,uid){
+  const members=await GET(`/api/units/${uid}/members`);
+  const m=members.find(x=>x.id===mid);if(!m)return;
+  showMo(`<h3>✏️ Member Edit — ${m.name}</h3>
+    <div id="eal" class="alert al-ok"></div>
+    <div class="fg"><label>పేరు *</label><input id="en" value="${m.name}"></div>
+    <div class="fr">
+      <div class="fg"><label>ఫోన్ *</label><input id="ep" value="${m.phone}"></div>
+      <div class="fg"><label>Rank</label><select id="er" onchange="calcE()">${RANKS.map(r=>`<option ${r===m.rank?'selected':''}>${r}</option>`).join('')}</select></div>
+    </div>
+    <div class="fg"><label>చిరునామా</label><textarea id="ea" rows="2">${m.address||''}</textarea></div>
+    <div class="fr">
+      <div class="fg"><label>పుస్తకాల సంఖ్య</label><input type="number" id="eb" value="${m.books}" min="1" oninput="calcE()"></div>
+      <div class="fg"><label>చందా సంవత్సరం</label><input type="number" id="ey" value="${m.sub_year}"></div>
+    </div>
+    <div class="amt-box"><div><div class="lbl">Amount</div><div class="val" id="eamt">₹${(m.amount||0).toLocaleString()}</div></div></div>
+    <div class="md-act"><button class="btn-cancel" onclick="closeMo()">రద్దు</button>
+      <button class="btn-ok" onclick="saveEdit('${mid}')">✓ సేవ్</button></div>`);
+}
+function calcE(){const r=document.getElementById('er')?.value;const b=parseInt(document.getElementById('eb')?.value)||0;const el=document.getElementById('eamt');if(el)el.textContent='₹'+(b*PRICE(r)).toLocaleString();}
+async function saveEdit(mid){
+  const name=document.getElementById('en').value.trim();
+  const phone=document.getElementById('ep').value.trim();
+  const rank=document.getElementById('er').value;
+  const address=document.getElementById('ea').value.trim();
+  const books=parseInt(document.getElementById('eb').value)||1;
+  const sub_year=parseInt(document.getElementById('ey').value)||CUR_YEAR;
+  const al=document.getElementById('eal');
+  if(!name||!phone){al.style.display='block';al.textContent='పేరు & ఫోన్ అవసరం!';return;}
+  await PUT(`/api/members/${mid}`,{name,phone,address,rank,books,sub_year});
+  al.style.display='block';al.textContent='✓ నవీకరించబడింది!';
+  setTimeout(()=>{closeMo();refresh();},800);
+}
+
+async function openRenew(mid,uid){
+  const members=await GET(`/api/units/${uid}/members`);
+  const m=members.find(x=>x.id===mid);if(!m)return;
+  const already=m.renewed_year===CUR_YEAR;
+  showMo(`<h3>🔄 Renewal — ${m.name}</h3>
+    ${already?`<div class="alert al-ok" style="display:block">✓ ${CUR_YEAR} కి ఇప్పటికే Renewed.</div>`:''}
+    <div class="ib"><strong>ప్రస్తుత</strong>Rank:${m.rank} | పుస్తకాలు:${m.books} | Amount:₹${(m.amount||0).toLocaleString()}</div>
+    <div class="fr">
+      <div class="fg"><label>పుస్తకాల సంఖ్య</label><input type="number" id="rb" value="${m.books}" min="1" oninput="calcR()"></div>
+      <div class="fg"><label>Rank</label><select id="rr" onchange="calcR()">${RANKS.map(r=>`<option ${r===m.rank?'selected':''}>${r}</option>`).join('')}</select></div>
+    </div>
+    <div class="amt-box"><div><div class="lbl">${CUR_YEAR} Amount</div><div class="val" id="ramt">₹${(m.amount||0).toLocaleString()}</div></div></div>
+    <div class="md-act"><button class="btn-cancel" onclick="closeMo()">రద్దు</button>
+      <button class="btn-ok" onclick="doRenew('${mid}')">✓ Renew</button></div>`);
+}
+function calcR(){const r=document.getElementById('rr')?.value;const b=parseInt(document.getElementById('rb')?.value)||0;const el=document.getElementById('ramt');if(el)el.textContent='₹'+(b*PRICE(r)).toLocaleString();}
+async function doRenew(mid){
+  const books=parseInt(document.getElementById('rb').value)||1;
+  const rank=document.getElementById('rr').value;
+  await PATCH(`/api/members/${mid}/renew`,{books,rank});
+  closeMo();refresh();
+}
+
+let selReason='';
+async function openUnsub(mid,uid){
+  selReason='';
+  const members=await GET(`/api/units/${uid}/members`);
+  const m=members.find(x=>x.id===mid);if(!m)return;
+  showMo(`<h3>❌ Unsubscribe — ${m.name}</h3>
+    <div class="ib"><strong>వివరాలు</strong>Rank:${m.rank} | Amount:₹${(m.amount||0).toLocaleString()}</div>
+    <div class="fg"><label>Reason *</label>
+      <div class="reason-chips">
+        <div class="chip" id="chip-Transferred" onclick="pickR('Transferred')">🔀 Transferred</div>
+        <div class="chip" id="chip-Retired" onclick="pickR('Retired')">👴 Retired</div>
+        <div class="chip" id="chip-Expired" onclick="pickR('Expired')">💐 Expired</div>
+        <div class="chip" id="chip-Other" onclick="pickR('Other')">✍️ Other</div>
+      </div>
+    </div>
+    <div id="other-box" style="display:none" class="fg"><label>వేరే Reason</label><input id="other-txt" placeholder="reason..."></div>
+    <div id="ual" class="alert al-err"></div>
+    <div class="md-act"><button class="btn-cancel" onclick="closeMo()">రద్దు</button>
+      <button class="btn-warn" onclick="doUnsub('${mid}')">❌ Unsubscribe</button></div>`);
+}
+function pickR(r){selReason=r;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));document.getElementById('chip-'+r).classList.add('on');document.getElementById('other-box').style.display=r==='Other'?'block':'none';}
+async function doUnsub(mid){
+  const al=document.getElementById('ual');
+  if(!selReason){al.style.display='block';al.textContent='Reason ఎంచుకోండి!';return;}
+  let reason=selReason;
+  if(selReason==='Other'){reason=document.getElementById('other-txt').value.trim();if(!reason){al.style.display='block';al.textContent='Reason రాయండి!';return;}}
+  await PATCH(`/api/members/${mid}/unsubscribe`,{reason});
+  closeMo();refresh();
+}
+async function doReactivate(mid){
+  await PATCH(`/api/members/${mid}/reactivate`);
+  refresh();
+}
+</script>
+</body>
+</html>
